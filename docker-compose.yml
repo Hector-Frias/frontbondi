@@ -1,0 +1,19 @@
+services:
+  front:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: frontbondi:latest
+    container_name: frontbondi
+    restart: unless-stopped
+    # tini como PID 1: reaping de zombies y SIGTERM limpio hacia node.
+    init: true
+    ports:
+      - '${PORT:-4000}:4000'
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      # Angular valida el header Host contra esta lista (proteccion anti-SSRF).
+      # Hay que agregar aca el dominio por el que se accede al front, si no el
+      # server responde con el shell de render en cliente.
+      NG_ALLOWED_HOSTS: '${NG_ALLOWED_HOSTS:-localhost,127.0.0.1}'

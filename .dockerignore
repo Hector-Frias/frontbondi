@@ -1,0 +1,22 @@
+# Dependencias y artefactos de build
+node_modules
+dist
+.angular
+
+# Git y IDE
+.git
+.gitignore
+.vscode
+
+# Documentacion y utilidades que el build no necesita
+docs
+scripts
+*.log
+npm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Markdown (salvo que se agreguen *.md al build en el futuro)
+**/*.md

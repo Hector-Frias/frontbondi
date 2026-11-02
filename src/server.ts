@@ -25,6 +25,14 @@ const angularApp = new AngularNodeAppEngine();
  */
 
 /**
+ * Health check del contenedor. Tiene que declararse antes del middleware de
+ * archivos estaticos y del catch-all de Angular para que no lo intercepten.
+ */
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+/**
  * Serve static files from /browser
  */
 app.use(

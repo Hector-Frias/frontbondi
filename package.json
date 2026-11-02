@@ -9,6 +9,10 @@
     "test": "ng test",
     "generar:datos": "node scripts/generate-routes.mjs",
     "generar:iconos": "node scripts/generate-icons.mjs",
+    "docker:build": "docker build -t frontbondi:latest .",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
     "serve:ssr:frontbondi": "node dist/frontbondi/server/server.mjs"
   },
   "private": true,

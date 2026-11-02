@@ -1,6 +1,6 @@
 import { isPlatformServer } from '@angular/common';
 import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
-import { Observable, delay, from, map } from 'rxjs';
+import { Observable, delay, from, of } from 'rxjs';
 import { Linea, RecorridoDetalle, SentidoRecorrido } from '../models';
 
 interface DatosMock {
@@ -54,7 +54,14 @@ export class SibusApiService {
   }
 
   private conDatos<T>(selector: (datos: DatosMock) => T): Observable<T> {
-    const base = from(this.precargar().then((datos) => selector(datos)));
+    // Si el dataset ya esta cargado (el app initializer lo descarga antes de crear
+    // el componente raiz), se emite de forma sincronica: en SSR el HTML prerenderizado
+    // sale con las lineas cargadas y no con un estado vacio.
+    const cacheado = this.datos();
+    const base = cacheado
+      ? of(selector(cacheado))
+      : from(this.precargar().then((datos) => selector(datos)));
+
     return isPlatformServer(this.platformId) ? base : base.pipe(delay(this.latenciaMs));
   }
 }
