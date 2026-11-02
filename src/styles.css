@@ -1,0 +1,76 @@
+@import 'tailwindcss' source(none);
+
+@source './**/*.{html,ts}';
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Safe area (notch / barra inferior de iOS). Requiere viewport-fit=cover en el meta viewport. */
+@utility safe-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+}
+
+@utility safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+@utility safe-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+@utility safe-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+@layer base {
+  html,
+  body,
+  app-root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Marcador numerado de parada (Leaflet divIcon: vive fuera del encapsulado de Angular) */
+.parada-marker-wrapper {
+  background: transparent;
+  border: 0;
+}
+
+.parada-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  border: 2px solid var(--parada-color, #0284c7);
+  color: #0f172a;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 45%);
+}
+
+/* Recorrido secundario (VUELTA) cuando se muestran los dos a la vez */
+.parada-marker--secundario {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+  font-size: 10px;
+  opacity: 0.9;
+}

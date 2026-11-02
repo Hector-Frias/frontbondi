@@ -1,0 +1,62 @@
+<section class="flex flex-col gap-2 border-b border-slate-200 bg-white px-3 py-2">
+  <div
+    class="flex items-center gap-2 overflow-x-auto scrollbar-none"
+    role="tablist"
+    aria-label="Líneas del servicio"
+  >
+    @for (linea of estado.lineas(); track linea.id) {
+      <button
+        type="button"
+        role="tab"
+        [class]="claseLinea(linea)"
+        [attr.aria-selected]="esLineaActiva(linea)"
+        (click)="estado.seleccionarLinea(linea)"
+      >
+        {{ linea.codigo }}
+      </button>
+    } @empty {
+      <p class="py-1 text-xs text-slate-400">Sin líneas disponibles</p>
+    }
+  </div>
+
+  <div class="flex items-center gap-3">
+    <div
+      class="inline-flex shrink-0 rounded-lg bg-slate-100 p-0.5"
+      role="group"
+      aria-label="Sentido del recorrido"
+    >
+      @for (sentido of sentidos; track sentido) {
+        <button
+          type="button"
+          [class]="claseSentido(sentido)"
+          [attr.aria-pressed]="esSentidoActivo(sentido)"
+          (click)="estado.cambiarSentido(sentido)"
+        >
+          {{ sentido }}
+        </button>
+      }
+      <button
+        type="button"
+        [class]="claseAmbos()"
+        [attr.aria-pressed]="estado.mostrarAmbosSentidos()"
+        title="Muestra IDA y VUELTA en simultáneo, cada uno con su color"
+        (click)="estado.alternarAmbosSentidos()"
+      >
+        AMBOS
+      </button>
+    </div>
+
+    <p class="min-w-0 flex-1 truncate text-xs text-slate-600">
+      @if (estado.mostrarAmbosSentidos()) {
+        <span class="mr-1 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-white"
+          >IDA + VUELTA</span
+        >
+      }
+      <span class="font-semibold text-slate-800">Desde:</span>
+      {{ estado.cabeceras().origen || '—' }}
+      <span class="mx-1 text-slate-400">→</span>
+      <span class="font-semibold text-slate-800">Hacia:</span>
+      {{ estado.cabeceras().destino || '—' }}
+    </p>
+  </div>
+</section>

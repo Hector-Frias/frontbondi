@@ -1,0 +1,35 @@
+{
+  "name": "SiBus Córdoba - Recorridos y Paradas",
+  "short_name": "SiBus CBA",
+  "description": "Recorridos, paradas y mapa de las líneas de SiBus en Córdoba Capital.",
+  "id": "/",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "theme_color": "#0284c7",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "categories": ["travel", "navigation", "utilities"],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512x512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

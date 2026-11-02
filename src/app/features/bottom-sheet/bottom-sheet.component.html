@@ -1,0 +1,64 @@
+<section
+  class="absolute inset-x-0 bottom-0 z-[1100] flex max-h-[70vh] flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl transition-[height] duration-300 ease-out"
+  [style.height]="expandido() ? '70vh' : 'calc(72px + env(safe-area-inset-bottom, 0px))'"
+>
+  <button
+    type="button"
+    class="flex w-full shrink-0 flex-col gap-1 px-4 pt-2 pb-1 text-left"
+    [attr.aria-expanded]="expandido()"
+    (click)="alternar()"
+  >
+    <span class="mx-auto h-1 w-10 shrink-0 rounded-full bg-slate-300" aria-hidden="true"></span>
+
+    <span class="flex w-full items-center gap-2">
+      <span class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
+        {{ estado.cabeceras().origen || 'Sin recorrido' }}
+        <span class="mx-1 text-slate-400">→</span>
+        {{ estado.cabeceras().destino }}
+      </span>
+      <span
+        class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
+      >
+        {{ totalParadas() }} paradas
+      </span>
+    </span>
+  </button>
+
+  @if (expandido()) {
+    <div class="shrink-0 px-4 pt-1 pb-2">
+      <input
+        #buscador
+        type="search"
+        inputmode="search"
+        autocomplete="off"
+        placeholder="Buscar parada…"
+        aria-label="Buscar parada"
+        class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-sky-500 focus:bg-white"
+        [value]="estado.filtroTexto()"
+        (input)="estado.filtroTexto.set(buscador.value)"
+      />
+    </div>
+
+    <ul class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 safe-bottom">
+      @for (parada of paradasOrdenadas(); track parada.id) {
+        <li>
+          <button type="button" [class]="claseParada(parada)" (click)="enfocar(parada)">
+            <span [class]="claseNumero(parada)">{{ parada.orden }}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm text-slate-800">{{ parada.nombreCalle }}</span>
+              @if (parada.codigoParada) {
+                <span class="block truncate text-[11px] text-slate-400">{{
+                  parada.codigoParada
+                }}</span>
+              }
+            </span>
+          </button>
+        </li>
+      } @empty {
+        <li class="px-3 py-8 text-center text-sm text-slate-500">
+          Sin paradas para el filtro actual.
+        </li>
+      }
+    </ul>
+  }
+</section>

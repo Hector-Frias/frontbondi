@@ -1,0 +1,10 @@
+<div
+  #contenedor
+  class="mapa"
+  role="application"
+  aria-label="Mapa de recorridos de SiBus en Córdoba"
+></div>
+
+@if (estado.cargando()) {
+  <div class="cargando" role="status">Cargando recorrido…</div>
+}
