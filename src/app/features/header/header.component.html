@@ -70,26 +70,34 @@
 
     <button
       type="button"
-      disabled
-      title="Ubicación del pasajero: disponible en el Sprint 3"
+      [class]="claseBotonUbicacion()"
+      [attr.aria-busy]="geolocation.estado() === 'solicitando'"
+      [title]="tituloUbicacion()"
       aria-label="Mi ubicación"
-      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400"
+      (click)="solicitarUbicacion()"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="h-5 w-5"
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-        <circle cx="12" cy="12" r="8" />
-      </svg>
+      @if (geolocation.estado() === 'solicitando') {
+        <span
+          class="h-4 w-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent"
+          aria-hidden="true"
+        ></span>
+      } @else {
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-5 w-5"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          <circle cx="12" cy="12" r="8" />
+        </svg>
+      }
     </button>
   </div>
 

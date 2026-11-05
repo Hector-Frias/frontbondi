@@ -21,8 +21,16 @@
 - [ ] Diseñar el componente `BottomSheetStopsComponent` con soporte para gestos táctiles.
 - [ ] Implementar filtro de búsqueda de paradas por texto en tiempo real (`computed()`).
 - [ ] Vincular selección de parada con animación de cámara Leaflet (`flyTo`).
-- [ ] Implementar `GeolocationService` para capturar la posición del usuario (`navigator.geolocation`).
-- [ ] Crear marcador dinámico pulsante para la ubicación del pasajero en el mapa.
+- [x] Implementar `GeolocationService` para capturar la posición del usuario (`navigator.geolocation`).
+- [x] Crear marcador dinámico pulsante para la ubicación del pasajero en el mapa.
+
+## Sprint 5: Buscador de Ubicaciones (Fase 3bis)
+- [x] `GeocodingService` con búsqueda de direcciones en Nominatim y autocompletado de paradas locales.
+- [x] `BusquedaService` con ranking de las 21 líneas por proximidad al destino (línea activa primero).
+- [x] Componente `SearchBarComponent`: barra flotante sobre el mapa con sugerencias y navegación por teclado.
+- [x] Componente `SearchResultsComponent`: veredicto de la línea activa, alternativas y parada de subida.
+- [x] Marcadores de destino y de paradas de subida en el mapa (`MapService`).
+- [ ] Mover la geocodificación al backend para evitar el límite de uso de Nominatim desde el navegador.
 
 ## Sprint 4: PWA, Optimización y Despliegue (Fase 4)
 - [ ] Configurar `@angular/pwa` con `manifest.webmanifest` adaptado a pantallas móviles (Standalone mode).

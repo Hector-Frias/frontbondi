@@ -7,3 +7,13 @@ export type {
 } from './sibus.model';
 
 export type { IconoControl, PuntoControl } from './punto-control.model';
+
+export type {
+  AnalisisDestino,
+  AnalisisLinea,
+  Destino,
+  OrigenSugerencia,
+  PosicionParada,
+  SugerenciaUbicacion,
+  VeredictoLinea,
+} from './busqueda.model';

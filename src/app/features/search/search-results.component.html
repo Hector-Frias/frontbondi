@@ -1,0 +1,157 @@
+@if (analisis(); as resultado) {
+  <section
+    class="pointer-events-none absolute inset-x-0 top-0 z-[1060] px-3 pt-[4.25rem]"
+    aria-label="Resultado de la búsqueda"
+  >
+    <div
+      class="pointer-events-auto mx-auto flex max-h-[calc(100%-7.5rem)] max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+    >
+      <header class="flex shrink-0 items-start gap-3 border-b border-slate-100 px-4 py-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-[11px] font-bold tracking-wide text-sky-600 uppercase">Destino</p>
+          <p class="truncate text-sm font-bold text-slate-900">{{ resultado.destino.etiqueta }}</p>
+          @if (distanciaAlDestino() !== null) {
+            <p class="text-[11px] text-slate-500">
+              A {{ formatear(distanciaAlDestino()!) }} de tu ubicación
+            </p>
+          }
+        </div>
+
+        <button
+          type="button"
+          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
+          aria-label="Cerrar resultados"
+          (click)="cerrar()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            class="h-3.5 w-3.5"
+            aria-hidden="true"
+          >
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </header>
+
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2">
+        @if (resultado.lineaActiva; as activa) {
+          <article class="mb-2 rounded-xl border border-sky-200 bg-sky-50 p-3">
+            <div class="flex items-center gap-2">
+              <span
+                class="flex h-7 w-7 items-center justify-center rounded-lg text-xs font-black text-white"
+                [style.background-color]="activa.linea.colorHex"
+              >
+                {{ activa.linea.codigo }}
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block text-xs font-bold text-sky-800">Tu línea activa</span>
+                <span class="block text-[11px] text-sky-700">{{ veredictoDe(activa) }}</span>
+              </span>
+              <span
+                class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                [class]="claseVeredicto(activa)"
+              >
+                {{ activa.sentido }}
+              </span>
+            </div>
+
+            <p class="mt-2 text-sm font-semibold text-slate-800">{{ resumen(activa) }}</p>
+
+            <p class="mt-1 text-xs text-slate-600">
+              Parada {{ activa.paradaCercana.orden }} · {{ activa.paradaCercana.nombreCalle }}
+              @if (activa.distanciaParada > 0) {
+                <span>(a {{ formatear(activa.distanciaParada) }}, {{ activa.minutosCaminata }} min)</span>
+              }
+            </p>
+
+            @if (activa.sentidoContrarioSirve) {
+              <p class="mt-1 text-[11px] text-slate-500">
+                El sentido contrario también pasa por el destino.
+              </p>
+            }
+
+            @if (mensajePosicion(activa)) {
+              <p class="mt-1 text-[11px] text-slate-500">{{ mensajePosicion(activa) }}</p>
+            }
+
+            <button
+              type="button"
+              class="mt-2 w-full rounded-lg bg-sky-600 px-3 py-2 text-xs font-bold text-white hover:bg-sky-700"
+              (click)="busqueda.elegirLinea(activa)"
+            >
+              Ver esta línea en el mapa
+            </button>
+          </article>
+        } @else {
+          <p class="mb-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            Ninguna línea pasa por este destino.
+          </p>
+        }
+
+        @if (lineas().length > 0) {
+          <h2 class="px-2 py-1 text-[11px] font-bold tracking-wide text-slate-500 uppercase">
+            Alternativas
+          </h2>
+
+          <ul>
+            @for (item of lineas(); track item.linea.id) {
+              <li>
+                <button type="button" [class]="claseBoton(item)" (click)="busqueda.elegirLinea(item)">
+                  <span
+                    class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black text-white"
+                    [style.background-color]="item.linea.colorHex"
+                  >
+                    {{ item.linea.codigo }}
+                  </span>
+
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-semibold text-slate-800">
+                      {{ resumen(item) }}
+                    </span>
+                    <span class="block truncate text-[11px] text-slate-500">
+                      Parada {{ item.paradaCercana.orden }} · {{ item.paradaCercana.nombreCalle }}
+                    </span>
+                  </span>
+
+                  <span
+                    class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    [class]="claseVeredicto(item)"
+                  >
+                    {{ item.sentido }}
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+
+          @if (hayMas()) {
+            <button
+              type="button"
+              class="mt-1 w-full rounded-lg py-2 text-xs font-semibold text-sky-700 hover:bg-slate-50"
+              (click)="mostrarTodas.set(!mostrarTodas())"
+            >
+              {{ mostrarTodas() ? 'Ver menos' : 'Ver todas las líneas' }}
+            </button>
+          }
+        }
+      </div>
+
+      <footer class="shrink-0 border-t border-slate-100 px-4 py-2 text-[10px] text-slate-400">
+        Datos de lugares: ©
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="underline"
+          >OpenStreetMap</a
+        >
+        contributors
+      </footer>
+    </div>
+  </section>
+}

@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Parada, PuntoControl } from '../../core/models';
+import { BusquedaService } from '../../core/services/busqueda.service';
 import { MapService } from '../../core/services/map.service';
 import { PuntosControlService } from '../../core/services/puntos-control.service';
 import { SibusStateService } from '../../core/services/sibus-state.service';
@@ -23,6 +24,7 @@ export class BottomSheetComponent {
   private readonly mapService = inject(MapService);
   private readonly puntosControl = inject(PuntosControlService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly busqueda = inject(BusquedaService);
 
   private readonly svgPorIcono = new Map<string, SafeHtml>(
     ICONOS_CONTROL.map((icono) => [icono.id, svgConfiable(this.sanitizer, icono.svg)]),
@@ -31,6 +33,16 @@ export class BottomSheetComponent {
   private readonly svgSinPunto = svgConfiable(this.sanitizer, SVG_BANDERA_NEUTRA);
 
   protected readonly expandido = signal(false);
+
+  constructor() {
+    // El panel de resultados del buscador ocupa la parte superior del mapa: la
+    // hoja inferior se pliega para no taparlo.
+    effect(() => {
+      if (this.busqueda.hayDestino()) {
+        this.expandido.set(false);
+      }
+    });
+  }
 
   protected readonly totalParadas = computed(
     () => this.estado.recorridoActual()?.paradas.length ?? 0,

@@ -9,6 +9,12 @@ interface DatosMock {
 }
 
 /**
+ * Dataset crudo ya descargado, sin la latencia artificial del navegador.
+ * Lo usa el buscador de ubicaciones para indexar las paradas sin esperar la red.
+ */
+export type DatosSibus = DatosMock;
+
+/**
  * Mock transitorio con las 21 líneas de SiBus de Córdoba Capital.
  *
  * Los datos provienen de las relaciones de ruta de OpenStreetMap (operator=SIbus):
@@ -39,6 +45,11 @@ export class SibusApiService {
     return this.conDatos((datos) => datos.lineas.map((linea) => ({ ...linea })));
   }
 
+  /** Dataset crudo ya en memoria (o `null` si todavía no se descargó). */
+  datosInmediatos(): DatosSibus | null {
+    return this.datos();
+  }
+
   obtenerRecorrido(lineaId: number, sentido: SentidoRecorrido): Observable<RecorridoDetalle> {
     return this.conDatos((datos) => {
       const recorrido = datos.recorridos.find(
@@ -51,6 +62,15 @@ export class SibusApiService {
 
       return recorrido;
     });
+  }
+
+  /**
+   * Todos los recorridos (IDA y VUELTA de las 21 líneas).
+   * Lo necesita el buscador de ubicaciones, que compara un destino contra las
+   * 42 trazas para armar el ranking de líneas.
+   */
+  obtenerRecorridos(): Observable<RecorridoDetalle[]> {
+    return this.conDatos((datos) => datos.recorridos);
   }
 
   private conDatos<T>(selector: (datos: DatosMock) => T): Observable<T> {

@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BottomSheetComponent } from './bottom-sheet.component';
+import { BusquedaService } from '../../core/services/busqueda.service';
 import { SibusStateService } from '../../core/services/sibus-state.service';
 
 describe('BottomSheetComponent', () => {
@@ -83,8 +84,7 @@ describe('BottomSheetComponent', () => {
     );
   });
 
-  it('abre el editor de punto de control desde la fila de la parada', async () => {
-    await esperarCarga();
+  it('abre el editor de punto de control desde la fila de la parada', async () => {    await esperarCarga();
     fixture.detectChanges();
 
     (elementos().querySelector('button') as HTMLButtonElement).click();
@@ -104,5 +104,29 @@ describe('BottomSheetComponent', () => {
       recorridoId: estado.recorridoActual()?.id,
       paradaId: primera?.id,
     });
+  });
+
+  it('se pliega cuando el buscador elige un destino', async () => {
+    await esperarCarga();
+    fixture.detectChanges();
+
+    (elementos().querySelector('button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(elementos().querySelector('ul')).not.toBeNull();
+
+    const busqueda = TestBed.inject(BusquedaService);
+    busqueda.seleccionar({
+      id: 'lugar-1',
+      etiqueta: 'Plaza San Martín',
+      latitud: -31.4201,
+      longitud: -64.1888,
+      origen: 'lugar',
+    });
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(elementos().querySelector('ul')).toBeNull();
   });
 });

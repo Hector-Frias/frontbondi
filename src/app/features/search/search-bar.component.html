@@ -1,0 +1,166 @@
+<div class="pointer-events-none absolute inset-x-0 top-0 z-[1050] px-3 pt-3">
+  <div class="pointer-events-auto mx-auto max-w-md">
+    <div
+      class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="h-5 w-5 shrink-0 text-slate-400"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+      </svg>
+
+      <input
+        #buscador
+        type="search"
+        inputmode="search"
+        autocomplete="off"
+        placeholder="Buscar dirección o lugar…"
+        aria-label="Buscar una ubicación"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls="lista-sugerencias"
+        [attr.aria-expanded]="desplegableAbierto()"
+        [attr.aria-activedescendant]="indiceActivo() >= 0 ? 'sugerencia-' + indiceActivo() : null"
+        class="min-w-0 flex-1 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+        [value]="busqueda.consulta()"
+        (input)="onInput($event)"
+        (keydown)="onKeydown($event)"
+        (focus)="enfocado.set(true)"
+        (blur)="enfocado.set(false)"
+      />
+
+      @if (busqueda.cargandoRemoto()) {
+        <span
+          class="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-slate-300 border-t-sky-600"
+          aria-label="Buscando"
+        ></span>
+      }
+
+      @if (busqueda.consulta().length > 0) {
+        <button
+          type="button"
+          class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
+          aria-label="Limpiar la búsqueda"
+          (click)="limpiar()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            class="h-3.5 w-3.5"
+            aria-hidden="true"
+          >
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      }
+
+      <button
+        type="button"
+        class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
+        title="Usar mi ubicación"
+        aria-label="Usar mi ubicación"
+        (click)="usarMiUbicacion()"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-4 w-4"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          <circle cx="12" cy="12" r="8" />
+        </svg>
+      </button>
+    </div>
+
+    @if (errorUbicacion()) {
+      <p
+        class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+        role="status"
+      >
+        {{ errorUbicacion() }}
+      </p>
+    }
+
+    @if (desplegableAbierto()) {
+      <ul
+        id="lista-sugerencias"
+        role="listbox"
+        aria-label="Sugerencias de ubicación"
+        class="mt-2 max-h-72 overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white py-1 shadow-xl"
+        (mousedown)="mantenerFoco($event)"
+      >
+        @for (sugerencia of sugerencias(); track sugerencia.id; let indice = $index) {
+          <li role="option" [id]="'sugerencia-' + indice" [attr.aria-selected]="indice === indiceActivo()">
+            <button type="button" [class]="claseSugerencia(indice)" (click)="elegir(sugerencia)">
+              <span
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500"
+                aria-hidden="true"
+              >
+                @if (sugerencia.origen === 'parada') {
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="h-4 w-4"
+                  >
+                    <rect x="4" y="3" width="16" height="15" rx="3" />
+                    <path d="M4 11h16M8 18v3M16 18v3M8 7h4" />
+                  </svg>
+                } @else {
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="h-4 w-4"
+                  >
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                }
+              </span>
+
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-semibold text-slate-800">
+                  {{ sugerencia.etiqueta }}
+                </span>
+                @if (sugerencia.detalle) {
+                  <span class="block truncate text-[11px] text-slate-500">
+                    {{ sugerencia.detalle }}
+                  </span>
+                }
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

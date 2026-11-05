@@ -87,6 +87,25 @@ export class SibusStateService {
     this.cargarRecorrido();
   }
 
+  /**
+   * Selecciona la línea y el sentido en una sola operación.
+   * Evita la doble carga que produciría llamar a `seleccionarLinea` y luego
+   * `cambiarSentido` (el buscador de ubicaciones lo necesita así).
+   *
+   * `paradaEnfocar` se enfoca cuando termina de cargar el recorrido: si se
+   * enfocara antes, la carga lo borraría.
+   */
+  seleccionarLineaConSentido(
+    linea: Linea,
+    sentido: SentidoRecorrido,
+    paradaEnfocar?: Parada,
+  ): void {
+    this.mostrarAmbosSentidos.set(false);
+    this.lineaSeleccionada.set(linea);
+    this.sentidoActivo.set(sentido);
+    this.cargarRecorrido(paradaEnfocar);
+  }
+
   cambiarSentido(sentido: SentidoRecorrido): void {
     if (this.sentidoActivo() === sentido && !this.mostrarAmbosSentidos()) return;
     this.mostrarAmbosSentidos.set(false);

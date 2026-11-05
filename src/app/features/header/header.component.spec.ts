@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HeaderComponent } from './header.component';
+import { GeolocationService } from '../../core/services/geolocation.service';
 import { PuntosControlService } from '../../core/services/puntos-control.service';
 import { SibusStateService } from '../../core/services/sibus-state.service';
 
@@ -101,5 +102,22 @@ describe('HeaderComponent', () => {
     fixture.detectChanges();
 
     expect(elementos().querySelector('app-control-points-panel')).not.toBeNull();
+  });
+
+  it('pide la ubicación con el botón del header', async () => {
+    await esperarCarga();
+    fixture.detectChanges();
+
+    const boton = elementos().querySelector<HTMLButtonElement>('button[aria-label="Mi ubicación"]');
+
+    expect(boton).not.toBeNull();
+    expect(boton?.disabled).toBe(false);
+
+    const geolocation = TestBed.inject(GeolocationService);
+    const solicitado = vi.spyOn(geolocation, 'solicitar');
+
+    boton!.click();
+
+    expect(solicitado).toHaveBeenCalled();
   });
 });

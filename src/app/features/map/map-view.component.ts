@@ -8,12 +8,15 @@ import {
   inject,
   viewChild,
 } from '@angular/core';
+import { BusquedaService } from '../../core/services/busqueda.service';
+import { GeolocationService } from '../../core/services/geolocation.service';
 import { MapService } from '../../core/services/map.service';
 import { PuntosControlService } from '../../core/services/puntos-control.service';
 import { SibusStateService } from '../../core/services/sibus-state.service';
 
 const CENTRO_CORDOBA: [number, number] = [-31.4201, -64.1888];
 const ZOOM_INICIAL = 13;
+const ZOOM_DESTINO = 15;
 
 @Component({
   selector: 'app-map-view',
@@ -27,6 +30,8 @@ export class MapViewComponent {
 
   private readonly mapService = inject(MapService);
   private readonly puntosControl = inject(PuntosControlService);
+  private readonly geolocation = inject(GeolocationService);
+  private readonly busqueda = inject(BusquedaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly contenedor = viewChild.required<ElementRef<HTMLElement>>('contenedor');
 
@@ -38,10 +43,13 @@ export class MapViewComponent {
     effect(() => {
       const listo = this.mapService.mapaListo();
       const visibles = this.estado.recorridosVisibles();
+      const hayDestino = this.busqueda.hayDestino();
 
       if (!listo) return;
 
-      this.mapService.dibujarRecorridos(visibles);
+      // Con un destino elegido la cámara la manejan el destino y la parada de
+      // subida: la traza no debe robarle el encuadre.
+      this.mapService.dibujarRecorridos(visibles, !hayDestino);
     });
 
     effect(() => {
@@ -61,6 +69,43 @@ export class MapViewComponent {
       if (!listo || !parada) return;
 
       this.mapService.enfocarParada(parada);
+    });
+
+    effect(() => {
+      const listo = this.mapService.mapaListo();
+      const posicion = this.geolocation.posicion();
+
+      if (!listo) return;
+
+      this.mapService.dibujarUbicacion(posicion);
+
+      if (posicion) {
+        this.mapService.centrarEn([posicion.latitud, posicion.longitud]);
+      }
+    });
+
+    effect(() => {
+      const listo = this.mapService.mapaListo();
+      const destino = this.busqueda.destino();
+
+      if (!listo) return;
+
+      this.mapService.dibujarDestino(
+        destino ? [destino.latitud, destino.longitud] : null,
+      );
+
+      if (destino) {
+        this.mapService.centrarEn([destino.latitud, destino.longitud], ZOOM_DESTINO);
+      }
+    });
+
+    effect(() => {
+      const listo = this.mapService.mapaListo();
+      const paradas = this.busqueda.paradasDeSubida();
+
+      if (!listo) return;
+
+      this.mapService.dibujarParadasDestacadas(paradas);
     });
 
     this.mapService.onPeticionPuntoControl = (recorridoId, paradaId) => {
