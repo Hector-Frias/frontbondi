@@ -19,6 +19,16 @@ export class SibusStateService {
   readonly cargando = signal<boolean>(false);
   readonly filtroTexto = signal<string>('');
 
+  /** Parada abierta en el editor de punto de control (banderas aparte). */
+  readonly paradaEnEdicion = signal<{
+    lineaId: number;
+    recorridoId: number;
+    paradaId: number;
+  } | null>(null);
+
+  /** Recorridos (IDA y VUELTA) de la línea activa: sirve para listar sus puntos de control. */
+  readonly recorridosLinea = signal<RecorridoDetalle[]>([]);
+
   /** Muestra IDA y VUELTA en simultáneo (el activo toma el color de la línea). */
   readonly mostrarAmbosSentidos = signal<boolean>(false);
   /** Recorrido del sentido contrario, se carga solo si ambos sentidos están visibles. */
@@ -99,6 +109,68 @@ export class SibusStateService {
     this.paradaEnfocada.set(parada);
   }
 
+  /** Abre el editor de punto de control sobre una parada del recorrido visible. */
+  abrirEditorPuntoControl(recorridoId: number, paradaId: number): void {
+    const recorrido = this.buscarRecorrido(recorridoId);
+    if (!recorrido) return;
+    if (!recorrido.paradas.some((parada) => parada.id === paradaId)) return;
+
+    this.paradaEnEdicion.set({
+      lineaId: recorrido.lineaId,
+      recorridoId,
+      paradaId,
+    });
+  }
+
+  cerrarEditorPuntoControl(): void {
+    this.paradaEnEdicion.set(null);
+  }
+
+  /** Busca la parada en el recorrido activo o en el contrario. */
+  buscarParada(recorridoId: number, paradaId: number): Parada | null {
+    const recorrido = this.buscarRecorrido(recorridoId);
+    if (!recorrido) return null;
+
+    return recorrido.paradas.find((parada) => parada.id === paradaId) ?? null;
+  }
+
+  /** Busca el recorrido visible (activo o contrario) por su id. */
+  buscarRecorrido(recorridoId: number): RecorridoDetalle | null {
+    for (const recorrido of [this.recorridoActual(), this.recorridoContrario()]) {
+      if (recorrido && recorrido.id === recorridoId) return recorrido;
+    }
+
+    return null;
+  }
+
+  /**
+   * Enfoca una parada del recorrido indicado. Si la parada es del sentido
+   * contrario al visible, cambia el sentido y la enfoca al recargar.
+   */
+  enfocarParadaEnRecorrido(recorrido: RecorridoDetalle, parada: Parada): void {
+    if (this.sentidoActivo() !== recorrido.sentido) {
+      this.mostrarAmbosSentidos.set(false);
+      this.sentidoActivo.set(recorrido.sentido);
+      this.cargarRecorrido(parada);
+      return;
+    }
+
+    this.enfocarParada(parada);
+  }
+
+  /** Carga los dos recorridos (IDA y VUELTA) de una línea. */
+  cargarRecorridosLinea(lineaId: number): void {
+    this.api.obtenerRecorrido(lineaId, 'IDA').subscribe({
+      next: (ida) => {
+        this.api.obtenerRecorrido(lineaId, 'VUELTA').subscribe({
+          next: (vuelta) => this.recorridosLinea.set([ida, vuelta]),
+          error: () => this.recorridosLinea.set([ida]),
+        });
+      },
+      error: () => this.recorridosLinea.set([]),
+    });
+  }
+
   private cargarLineas(): void {
     this.cargando.set(true);
     this.api.obtenerLineas().subscribe({
@@ -114,7 +186,7 @@ export class SibusStateService {
     });
   }
 
-  private cargarRecorrido(): void {
+  private cargarRecorrido(paradaEnfocar?: Parada): void {
     const linea = this.lineaSeleccionada();
     const sentido = this.sentidoActivo();
     if (!linea) return;
@@ -122,12 +194,14 @@ export class SibusStateService {
     this.cargando.set(true);
     this.recorridoActual.set(null);
     this.paradaEnfocada.set(null);
+    this.paradaEnEdicion.set(null);
     this.recorridoContrario.set(null);
+    this.recorridosLinea.set([]);
 
     this.api.obtenerRecorrido(linea.id, sentido).subscribe({
       next: (rec) => {
         this.recorridoActual.set(rec);
-        this.paradaEnfocada.set(null);
+        this.paradaEnfocada.set(paradaEnfocar ?? null);
         if (this.mostrarAmbosSentidos()) {
           this.cargarRecorridoContrario();
         } else {

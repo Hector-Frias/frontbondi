@@ -9,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { MapService } from '../../core/services/map.service';
+import { PuntosControlService } from '../../core/services/puntos-control.service';
 import { SibusStateService } from '../../core/services/sibus-state.service';
 
 const CENTRO_CORDOBA: [number, number] = [-31.4201, -64.1888];
@@ -25,6 +26,7 @@ export class MapViewComponent {
   protected readonly estado = inject(SibusStateService);
 
   private readonly mapService = inject(MapService);
+  private readonly puntosControl = inject(PuntosControlService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly contenedor = viewChild.required<ElementRef<HTMLElement>>('contenedor');
 
@@ -44,12 +46,26 @@ export class MapViewComponent {
 
     effect(() => {
       const listo = this.mapService.mapaListo();
+      const visibles = this.estado.recorridosVisibles();
+      const puntos = this.puntosControl.puntos();
+
+      if (!listo) return;
+
+      this.mapService.dibujarAnotaciones(visibles, puntos);
+    });
+
+    effect(() => {
+      const listo = this.mapService.mapaListo();
       const parada = this.estado.paradaEnfocada();
 
       if (!listo || !parada) return;
 
       this.mapService.enfocarParada(parada);
     });
+
+    this.mapService.onPeticionPuntoControl = (recorridoId, paradaId) => {
+      this.estado.abrirEditorPuntoControl(recorridoId, paradaId);
+    };
   }
 
   private inicializarMapa(): void {

@@ -1,6 +1,11 @@
 import { Injectable, signal } from '@angular/core';
 import type { LatLngBounds, LayerGroup, Map as LeafletMap, Polyline } from 'leaflet';
-import { Parada, RecorridoVisible } from '../models';
+import { Parada, PuntoControl, RecorridoVisible } from '../models';
+import {
+  SVG_BANDERA_FINAL,
+  SVG_BANDERA_SALIDA,
+  buscarIconoControl,
+} from '../data/iconos-control';
 
 type LeafletModule = typeof import('leaflet');
 
@@ -11,6 +16,11 @@ export interface OpcionesMapa {
 
 const URL_TILES = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const ATRIBUCION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+/** Lado del badge del punto de control. */
+const LADO_ANOTACION = 22;
+/** Lado de las banderas (SVG 24x24 escalado). */
+const LADO_BANDERA = 26;
 
 /**
  * Encapsula Leaflet: mantiene la instancia del mapa, las capas de la traza y de las
@@ -24,10 +34,18 @@ const ATRIBUCION = '&copy; <a href="https://www.openstreetmap.org/copyright">Ope
 export class MapService {
   readonly mapaListo = signal(false);
 
+  /**
+   * Se dispara cuando el usuario pide asignar un punto de control desde el
+   * popup de una parada del mapa.
+   */
+  onPeticionPuntoControl: ((recorridoId: number, paradaId: number) => void) | null = null;
+
   private leaflet: LeafletModule | null = null;
   private mapa: LeafletMap | null = null;
   private capaRuta: LayerGroup | null = null;
   private capaParadas: LayerGroup | null = null;
+  private capaBanderas: LayerGroup | null = null;
+  private capaPuntosControl: LayerGroup | null = null;
 
   get mapaInstancia(): LeafletMap | null {
     return this.mapa;
@@ -55,6 +73,10 @@ export class MapService {
 
     this.capaRuta = L.layerGroup().addTo(this.mapa);
     this.capaParadas = L.layerGroup().addTo(this.mapa);
+    this.capaBanderas = L.layerGroup().addTo(this.mapa);
+    this.capaPuntosControl = L.layerGroup().addTo(this.mapa);
+
+    this.escucharAccionesPopup();
 
     this.mapaListo.set(true);
   }
@@ -91,7 +113,7 @@ export class MapService {
         });
 
         L.marker([parada.latitud, parada.longitud], { icon: icono, keyboard: false })
-          .bindPopup(parada.nombreCalle)
+          .bindPopup(this.crearPopupParada(parada, visible.recorrido.id))
           .addTo(this.capaParadas);
       }
 
@@ -103,6 +125,64 @@ export class MapService {
 
     if (bounds) {
       mapa.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }
+
+  /**
+   * Dibuja las anotaciones sobre las paradas: bandera verde en la primera
+   * parada del recorrido, bandera a cuadros en la última y el ícono del punto
+   * de control en las paradas anotadas.
+   *
+   * No reencuadra la cámara: agregar o quitar una anotación no debe mover el
+   * mapa que el usuario está mirando.
+   */
+  dibujarAnotaciones(visibles: RecorridoVisible[], puntos: PuntoControl[]): void {
+    const L = this.leaflet;
+    if (!L || !this.capaBanderas || !this.capaPuntosControl) return;
+
+    this.capaBanderas.clearLayers();
+    this.capaPuntosControl.clearLayers();
+
+    const paradasPorRecorrido = new Map<number, Map<number, Parada>>();
+
+    for (const visible of visibles) {
+      const recorrido = visible.recorrido;
+      const paradas = new Map<number, Parada>();
+      for (const parada of recorrido.paradas) {
+        paradas.set(parada.id, parada);
+      }
+      paradasPorRecorrido.set(recorrido.id, paradas);
+
+      const ordenadas = [...recorrido.paradas].sort((a, b) => a.orden - b.orden);
+      const primera = ordenadas[0];
+      const ultima = ordenadas[ordenadas.length - 1];
+
+      if (primera) {
+        this.agregarBandera(L, primera, recorrido.id, 'salida', visible.secundario);
+      }
+
+      if (ultima) {
+        this.agregarBandera(L, ultima, recorrido.id, 'final', visible.secundario);
+      }
+    }
+
+    for (const punto of puntos) {
+      const parada = paradasPorRecorrido.get(punto.recorridoId)?.get(punto.paradaId);
+      if (!parada) continue;
+
+      const icono = buscarIconoControl(punto.iconoId);
+      if (!icono) continue;
+
+      const marcador = L.divIcon({
+        className: 'anotacion-marker-wrapper',
+        html: `<span class="anotacion-marker" style="--anotacion-color:${icono.color}">${icono.svg}</span>`,
+        iconSize: [LADO_ANOTACION, LADO_ANOTACION],
+        iconAnchor: [-LADO_ANOTACION / 2, -LADO_ANOTACION / 2],
+      });
+
+      L.marker([parada.latitud, parada.longitud], { icon: marcador, keyboard: false })
+        .bindPopup(this.crearPopupPuntoControl(parada, punto.recorridoId, punto.iconoId))
+        .addTo(this.capaPuntosControl);
     }
   }
 
@@ -118,14 +198,131 @@ export class MapService {
     this.mapa?.invalidateSize();
   }
 
+  /** Agrega la bandera verde (salida) o a cuadros (final) sobre una parada. */
+  private agregarBandera(
+    L: LeafletModule,
+    parada: Parada,
+    recorridoId: number,
+    tipo: 'salida' | 'final',
+    secundario: boolean,
+  ): void {
+    if (!this.capaBanderas) return;
+
+    const svg = tipo === 'salida' ? SVG_BANDERA_SALIDA : SVG_BANDERA_FINAL;
+
+    const icono = L.divIcon({
+      className: 'bandera-marker-wrapper',
+      html: `<span class="bandera-marker bandera-marker--${tipo}${secundario ? ' bandera-marker--secundario' : ''}">${svg}</span>`,
+      iconSize: [LADO_BANDERA, LADO_BANDERA],
+      // El mástil se planta sobre el borde derecho de la parada: la bandera
+      // queda al costado del número sin taparlo.
+      iconAnchor: [-9, 23],
+    });
+
+    L.marker([parada.latitud, parada.longitud], { icon: icono, keyboard: false })
+      .bindPopup(this.crearPopupParada(parada, recorridoId))
+      .addTo(this.capaBanderas);
+  }
+
+  /**
+   * Popup de la parada. Se arma con DOM (`textContent`) en vez de HTML para no
+   * interpolar los nombres de calle que vienen del proveedor de datos.
+   */
+  private crearPopupParada(parada: Parada, recorridoId: number): HTMLElement {
+    const raiz = document.createElement('div');
+    raiz.className = 'popup-parada';
+
+    const nombre = document.createElement('strong');
+    nombre.className = 'popup-parada__nombre';
+    nombre.textContent = parada.nombreCalle;
+    raiz.appendChild(nombre);
+
+    if (parada.codigoParada) {
+      const codigo = document.createElement('span');
+      codigo.className = 'popup-parada__codigo';
+      codigo.textContent = parada.codigoParada;
+      raiz.appendChild(codigo);
+    }
+
+    raiz.appendChild(this.crearBotonAccion('Punto de control', recorridoId, parada.id));
+
+    return raiz;
+  }
+
+  /** Popup del punto de control: nombre de la parada, ícono asignado y acceso al editor. */
+  private crearPopupPuntoControl(
+    parada: Parada,
+    recorridoId: number,
+    iconoId: string,
+  ): HTMLElement {
+    const raiz = document.createElement('div');
+    raiz.className = 'popup-parada';
+
+    const nombre = document.createElement('strong');
+    nombre.className = 'popup-parada__nombre';
+    nombre.textContent = parada.nombreCalle;
+    raiz.appendChild(nombre);
+
+    const etiqueta = document.createElement('span');
+    etiqueta.className = 'popup-parada__codigo';
+    etiqueta.textContent = buscarIconoControl(iconoId)?.nombre ?? 'Punto de control';
+    raiz.appendChild(etiqueta);
+
+    raiz.appendChild(this.crearBotonAccion('Editar punto de control', recorridoId, parada.id));
+
+    return raiz;
+  }
+
+  private crearBotonAccion(
+    texto: string,
+    recorridoId: number,
+    paradaId: number,
+  ): HTMLButtonElement {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'popup-parada__accion';
+    boton.dataset['accion'] = 'control-point';
+    boton.dataset['recorridoId'] = String(recorridoId);
+    boton.dataset['paradaId'] = String(paradaId);
+    boton.textContent = texto;
+    return boton;
+  }
+
+  /** Delega el click del botón del popup al consumidor del mapa. */
+  private escucharAccionesPopup(): void {
+    this.mapa?.on('popupopen', (event) => {
+      const elemento = event.popup.getElement();
+      if (!elemento) return;
+
+      const boton = elemento.querySelector<HTMLButtonElement>(
+        'button[data-accion="control-point"]',
+      );
+      if (!boton || boton.dataset['escuchado'] === '1') return;
+
+      boton.dataset['escuchado'] = '1';
+      boton.addEventListener('click', () => {
+        const recorridoId = Number(boton.dataset['recorridoId']);
+        const paradaId = Number(boton.dataset['paradaId']);
+
+        if (!Number.isFinite(recorridoId) || !Number.isFinite(paradaId)) return;
+
+        this.onPeticionPuntoControl?.(recorridoId, paradaId);
+      });
+    });
+  }
+
   destruir(): void {
     this.capaRuta?.clearLayers();
     this.capaParadas?.clearLayers();
+    this.capaBanderas?.clearLayers();
+    this.capaPuntosControl?.clearLayers();
     this.mapa?.remove();
 
     this.mapa = null;
     this.capaRuta = null;
     this.capaParadas = null;
+    this.capaBanderas = null;
+    this.capaPuntosControl = null;
     this.leaflet = null;
     this.mapaListo.set(false);
   }

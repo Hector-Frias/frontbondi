@@ -82,4 +82,27 @@ describe('BottomSheetComponent', () => {
       estado.recorridoActual()?.paradas.length ?? 0,
     );
   });
+
+  it('abre el editor de punto de control desde la fila de la parada', async () => {
+    await esperarCarga();
+    fixture.detectChanges();
+
+    (elementos().querySelector('button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const primera = estado.recorridoActual()?.paradas[0];
+    const botones = elementos().querySelectorAll<HTMLButtonElement>('ul li button');
+
+    // Cada fila tiene el botón de foco y el de punto de control.
+    expect(botones.length).toBeGreaterThan(1);
+
+    botones[1].click();
+    fixture.detectChanges();
+
+    expect(estado.paradaEnEdicion()).toEqual({
+      lineaId: estado.lineaSeleccionada()?.id,
+      recorridoId: estado.recorridoActual()?.id,
+      paradaId: primera?.id,
+    });
+  });
 });

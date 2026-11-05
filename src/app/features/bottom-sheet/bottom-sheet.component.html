@@ -41,7 +41,7 @@
 
     <ul class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 safe-bottom">
       @for (parada of paradasOrdenadas(); track parada.id) {
-        <li>
+        <li class="flex items-center gap-1 px-1">
           <button type="button" [class]="claseParada(parada)" (click)="enfocar(parada)">
             <span [class]="claseNumero(parada)">{{ parada.orden }}</span>
             <span class="min-w-0 flex-1">
@@ -52,6 +52,16 @@
                 }}</span>
               }
             </span>
+          </button>
+          <button
+            type="button"
+            [class]="claseBotonControl(parada)"
+            [style.color]="colorPunto(parada)"
+            [style.border-color]="colorPunto(parada)"
+            [attr.aria-label]="etiquetaControl(parada)"
+            (click)="abrirEditor(parada)"
+          >
+            <span class="icono-svg size-4" [innerHTML]="svgPunto(parada)"></span>
           </button>
         </li>
       } @empty {

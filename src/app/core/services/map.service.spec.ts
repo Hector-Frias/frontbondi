@@ -104,6 +104,98 @@ describe('MapService', () => {
     expect(() => servicio.enfocarParada(RECORRIDO.paradas[0])).not.toThrow();
   });
 
+  it('dibuja la bandera verde en la primera parada y la de cuadros en la última', async () => {
+    await servicio.inicializar(contenedor, { centro: [-31.4201, -64.1888], zoom: 13 });
+
+    servicio.dibujarRecorridos([{ recorrido: RECORRIDO, colorHex: '#0284c7', secundario: false }]);
+    servicio.dibujarAnotaciones([{ recorrido: RECORRIDO, colorHex: '#0284c7', secundario: false }], []);
+
+    expect(contenedor.querySelectorAll('.bandera-marker--salida').length).toBe(1);
+    expect(contenedor.querySelectorAll('.bandera-marker--final').length).toBe(1);
+  });
+
+  it('dibuja el punto de control con el ícono elegido', async () => {
+    await servicio.inicializar(contenedor, { centro: [-31.4201, -64.1888], zoom: 13 });
+
+    servicio.dibujarAnotaciones([{ recorrido: RECORRIDO, colorHex: '#0284c7', secundario: false }], [
+      {
+        id: 'pc-1',
+        lineaId: RECORRIDO.lineaId,
+        recorridoId: RECORRIDO.id,
+        paradaId: RECORRIDO.paradas[1].id,
+        iconoId: 'alerta',
+        creadoEn: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+
+    const marcador = contenedor.querySelector('.anotacion-marker');
+    expect(marcador).not.toBeNull();
+    expect(marcador?.querySelector('svg')).not.toBeNull();
+  });
+
+  it('deja de dibujar el punto de control cuando se elimina', async () => {
+    await servicio.inicializar(contenedor, { centro: [-31.4201, -64.1888], zoom: 13 });
+
+    const visible = { recorrido: RECORRIDO, colorHex: '#0284c7', secundario: false };
+    const punto = {
+      id: 'pc-1',
+      lineaId: RECORRIDO.lineaId,
+      recorridoId: RECORRIDO.id,
+      paradaId: RECORRIDO.paradas[1].id,
+      iconoId: 'alerta',
+      creadoEn: '2026-01-01T00:00:00.000Z',
+    };
+
+    servicio.dibujarAnotaciones([visible], [punto]);
+    expect(contenedor.querySelectorAll('.anotacion-marker').length).toBe(1);
+
+    servicio.dibujarAnotaciones([visible], []);
+    expect(contenedor.querySelectorAll('.anotacion-marker').length).toBe(0);
+  });
+
+  it('no mueve la cámara al dibujar las anotaciones', async () => {
+    await servicio.inicializar(contenedor, { centro: [-31.4201, -64.1888], zoom: 13 });
+
+    servicio.dibujarRecorridos([{ recorrido: RECORRIDO, colorHex: '#0284c7', secundario: false }]);
+    const zoom = servicio.mapaInstancia?.getZoom();
+
+    servicio.dibujarAnotaciones([{ recorrido: RECORRIDO, colorHex: '#0284c7', secundario: false }], []);
+
+    expect(servicio.mapaInstancia?.getZoom()).toBe(zoom);
+  });
+
+  it('ofrece la acción de punto de control en el popup de la parada', async () => {
+    await servicio.inicializar(contenedor, { centro: [-31.4201, -64.1888], zoom: 13 });
+
+    const peticiones: Array<[number, number]> = [];
+    servicio.onPeticionPuntoControl = (recorridoId, paradaId) =>
+      peticiones.push([recorridoId, paradaId]);
+
+    servicio.dibujarRecorridos([{ recorrido: RECORRIDO, colorHex: '#0284c7', secundario: false }]);
+
+    const modulo = await import('leaflet');
+    const L = modulo.default ?? modulo;
+
+    const marcadores: InstanceType<typeof L.Marker>[] = [];
+    servicio.mapaInstancia?.eachLayer((capa) => {
+      if (capa instanceof L.Marker) marcadores.push(capa);
+    });
+
+    expect(marcadores.length).toBe(RECORRIDO.paradas.length);
+
+    marcadores[0].openPopup();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const boton = contenedor.querySelector<HTMLButtonElement>(
+      'button[data-accion="control-point"]',
+    );
+    expect(boton).not.toBeNull();
+
+    boton!.click();
+
+    expect(peticiones).toEqual([[RECORRIDO.id, RECORRIDO.paradas[0].id]]);
+  });
+
   it('destruye el mapa liberando la instancia', async () => {
     await servicio.inicializar(contenedor, { centro: [-31.4201, -64.1888], zoom: 13 });
 

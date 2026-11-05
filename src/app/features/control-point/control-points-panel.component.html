@@ -1,0 +1,115 @@
+<section
+  class="max-h-[70vh] overflow-y-auto overscroll-contain border-b border-slate-200 bg-white shadow-xl"
+  aria-label="Puntos de control de la línea activa"
+>
+  <header class="sticky top-0 z-10 flex items-center justify-between gap-2 bg-white px-4 py-3">
+    <div class="min-w-0">
+      <p class="text-sm font-bold text-slate-900">
+        Puntos de control
+        @if (linea(); as linea) {
+          <span class="text-slate-400">· Línea {{ linea.codigo }}</span>
+        }
+      </p>
+      <p class="text-[11px] text-slate-500">
+        {{ items().length }}
+        {{ items().length === 1 ? 'punto de control' : 'puntos de control' }} en esta línea
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500"
+      aria-label="Cerrar"
+      (click)="cerrado.emit()"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        class="h-4 w-4"
+        aria-hidden="true"
+      >
+        <path d="M18 6 6 18M6 6l12 12" />
+      </svg>
+    </button>
+  </header>
+
+  @if (cargando()) {
+    <p class="px-4 py-6 text-center text-sm text-slate-500">Cargando puntos de control…</p>
+  } @else if (items().length === 0) {
+    <p class="px-4 py-6 text-center text-sm text-slate-500">
+      Todavía no tenés puntos de control en esta línea.
+      <span class="mt-1 block text-xs text-slate-400">
+        Tocá la bandera en el listado de paradas para agregar uno.
+      </span>
+    </p>
+  } @else {
+    <ul class="px-2 pb-3">
+      @for (item of items(); track item.punto.id) {
+        <li class="flex items-center gap-2">
+          <button
+            type="button"
+            class="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-slate-100"
+            [attr.aria-label]="'Ver ' + item.parada.nombreCalle + ' en el mapa'"
+            (click)="enfocar(item)"
+          >
+            <span
+              class="flex size-9 shrink-0 items-center justify-center rounded-full border-2 bg-white"
+              [style.border-color]="colorDe(item.punto)"
+              [style.color]="colorDe(item.punto)"
+              [title]="nombreDe(item.punto)"
+            >
+              <span class="icono-svg size-4" [innerHTML]="svgDe(item.punto)"></span>
+            </span>
+
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-semibold text-slate-800">
+                {{ item.parada.nombreCalle }}
+              </span>
+              <span class="mt-0.5 flex items-center gap-1.5">
+                <span
+                  class="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                  [class.bg-sky-100]="item.recorrido.sentido === 'IDA'"
+                  [class.text-sky-700]="item.recorrido.sentido === 'IDA'"
+                  [class.bg-slate-200]="item.recorrido.sentido === 'VUELTA'"
+                  [class.text-slate-600]="item.recorrido.sentido === 'VUELTA'"
+                >
+                  {{ item.recorrido.sentido }}
+                </span>
+                @if (item.parada.codigoParada) {
+                  <span class="truncate text-[11px] text-slate-400">
+                    {{ item.parada.codigoParada }}
+                  </span>
+                }
+              </span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="flex size-9 shrink-0 items-center justify-center rounded-full text-slate-300 hover:bg-red-50 hover:text-red-500"
+            [attr.aria-label]="'Quitar punto de control en ' + item.parada.nombreCalle"
+            title="Quitar punto de control"
+            (click)="quitar(item)"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              class="h-4 w-4"
+              aria-hidden="true"
+            >
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>

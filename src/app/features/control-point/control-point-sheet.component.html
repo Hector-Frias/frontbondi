@@ -1,0 +1,55 @@
+@if (parada(); as parada) {
+  <div class="fixed inset-0 z-[1200] flex items-end bg-slate-900/40" (click)="cerrar()">
+    <section
+      class="safe-bottom w-full rounded-t-2xl bg-white px-4 pt-3 pb-4 shadow-2xl"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Punto de control"
+      (click)="$event.stopPropagation()"
+    >
+      <span class="mx-auto block h-1 w-10 rounded-full bg-slate-300" aria-hidden="true"></span>
+
+      <h2 class="mt-2 text-sm font-semibold text-slate-800">
+        {{ puntoActual() ? 'Editar punto de control' : 'Agregar punto de control' }}
+      </h2>
+      <p class="truncate text-xs text-slate-500">{{ parada.nombreCalle }}</p>
+
+      <div class="mt-3 grid grid-cols-6 gap-2">
+        @for (icono of iconos; track icono.id) {
+          <button
+            type="button"
+            class="flex aspect-square items-center justify-center rounded-xl border bg-white transition-colors"
+            [class.border-sky-500]="esIconoActual(icono.id)"
+            [class.bg-sky-50]="esIconoActual(icono.id)"
+            [class.border-slate-200]="!esIconoActual(icono.id)"
+            [style.color]="icono.color"
+            [attr.aria-label]="icono.nombre"
+            [attr.aria-pressed]="esIconoActual(icono.id)"
+            (click)="elegir(icono.id)"
+          >
+            <span class="icono-svg size-5" [innerHTML]="icono.svgSeguro"></span>
+          </button>
+        }
+      </div>
+
+      <div class="mt-4 flex gap-2">
+        @if (puntoActual()) {
+          <button
+            type="button"
+            class="flex-1 rounded-lg border border-red-200 bg-red-50 py-2.5 text-sm font-semibold text-red-600"
+            (click)="quitar()"
+          >
+            Quitar punto de control
+          </button>
+        }
+        <button
+          type="button"
+          class="flex-1 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600"
+          (click)="cerrar()"
+        >
+          Cerrar
+        </button>
+      </div>
+    </section>
+  </div>
+}
