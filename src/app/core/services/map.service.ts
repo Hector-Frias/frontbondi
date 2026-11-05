@@ -26,6 +26,8 @@ const LADO_BANDERA = 26;
 const LADO_UBICACION = 20;
 /** Lado de la parada de subida destacada. */
 const LADO_PARADA_DESTACADA = 30;
+/** Lado de la cruz que marca el destino. */
+const LADO_DESTINO = 38;
 
 /**
  * Encapsula Leaflet: mantiene la instancia del mapa, las capas de la traza y de las
@@ -84,8 +86,10 @@ export class MapService {
     this.capaBanderas = L.layerGroup().addTo(this.mapa);
     this.capaPuntosControl = L.layerGroup().addTo(this.mapa);
     this.capaUbicacion = L.layerGroup().addTo(this.mapa);
-    this.capaDestino = L.layerGroup().addTo(this.mapa);
     this.capaParadasDestacadas = L.layerGroup().addTo(this.mapa);
+    // La cruz del destino va en la última capa: tiene que verse por encima de
+    // las paradas destacadas, que pueden caer justo en el mismo punto.
+    this.capaDestino = L.layerGroup().addTo(this.mapa);
 
     this.escucharAccionesPopup();
 
@@ -180,7 +184,7 @@ export class MapService {
     );
   }
 
-  /** Dibuja el destino elegido. Con `coordenada` en `null` borra el pin. */
+  /** Dibuja el destino elegido. Con `coordenada` en `null` borra la cruz. */
   dibujarDestino(coordenada: [number, number] | null): void {
     const L = this.leaflet;
     if (!L || !this.capaDestino) return;
@@ -190,9 +194,14 @@ export class MapService {
 
     const icono = L.divIcon({
       className: 'destino-marker-wrapper',
-      html: '<span class="destino-marker"></span>',
-      iconSize: [28, 36],
-      iconAnchor: [14, 34],
+      html: [
+        '<svg class="destino-marker" viewBox="0 0 24 24" aria-hidden="true">',
+        '<path d="M4.5 4.5 19.5 19.5M19.5 4.5 4.5 19.5" fill="none" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" />',
+        '<path d="M4.5 4.5 19.5 19.5M19.5 4.5 4.5 19.5" fill="none" stroke="#dc2626" stroke-width="4" stroke-linecap="round" />',
+        '</svg>',
+      ].join(''),
+      iconSize: [LADO_DESTINO, LADO_DESTINO],
+      iconAnchor: [LADO_DESTINO / 2, LADO_DESTINO / 2],
     });
 
     L.marker(coordenada, { icon: icono, keyboard: false }).addTo(this.capaDestino);
@@ -279,6 +288,19 @@ export class MapService {
 
   enfocarParada(parada: Parada, zoom = 16): void {
     this.mapa?.flyTo([parada.latitud, parada.longitud], zoom);
+  }
+
+  /**
+   * Encuadra el mapa sobre varios puntos a la vez (por ejemplo, el destino y
+   * la parada de subida) para que ambos queden visibles en pantalla.
+   */
+  encuadrar(coordenadas: [number, number][], zoomMaximo = 16): void {
+    const L = this.leaflet;
+    const mapa = this.mapa;
+
+    if (!L || !mapa || coordenadas.length === 0) return;
+
+    mapa.fitBounds(L.latLngBounds(coordenadas), { padding: [40, 40], maxZoom: zoomMaximo });
   }
 
   centrarEn(coordenada: [number, number], zoom = 16): void {

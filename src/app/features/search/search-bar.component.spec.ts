@@ -11,13 +11,23 @@ describe('SearchBarComponent', () => {
 
   const elementos = (): HTMLElement => fixture.nativeElement as HTMLElement;
 
-  const input = (): HTMLInputElement =>
-    elementos().querySelector<HTMLInputElement>('input[type="search"]')!;
+  const input = (): HTMLInputElement | null =>
+    elementos().querySelector<HTMLInputElement>('input[type="search"]');
+
+  const boton = (ariaLabel: string): HTMLButtonElement | null =>
+    elementos().querySelector<HTMLButtonElement>(`button[aria-label="${ariaLabel}"]`);
+
+  /** Despliega el buscador como lo haría el usuario. */
+  const abrir = async (): Promise<void> => {
+    boton('Buscar una ubicación')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
 
   const escribir = (texto: string): void => {
-    input().focus();
-    input().value = texto;
-    input().dispatchEvent(new Event('input'));
+    input()!.value = texto;
+    input()!.dispatchEvent(new Event('input'));
     fixture.detectChanges();
   };
 
@@ -41,12 +51,21 @@ describe('SearchBarComponent', () => {
     globalThis.fetch = FETCH_ORIGINAL;
   });
 
-  it('muestra el campo de búsqueda', () => {
-    expect(input()).not.toBeNull();
-    expect(input().getAttribute('placeholder')).toContain('dirección');
+  it('arranca plegado, sin el input en pantalla', () => {
+    expect(input()).toBeNull();
+    expect(boton('Buscar una ubicación')).not.toBeNull();
+    expect(boton('Usar mi ubicación')).not.toBeNull();
   });
 
-  it('propone las paradas del catálogo mientras se escribe', () => {
+  it('abre el input al tocar el ícono de la lupa', async () => {
+    await abrir();
+
+    expect(input()).not.toBeNull();
+    expect(input()?.getAttribute('placeholder')).toContain('dirección');
+  });
+
+  it('propone las paradas del catálogo mientras se escribe', async () => {
+    await abrir();
     escribir('fragueiro');
 
     expect(busqueda.consulta()).toBe('fragueiro');
@@ -54,7 +73,8 @@ describe('SearchBarComponent', () => {
     expect(elementos().querySelectorAll('[role="option"]').length).toBeGreaterThan(0);
   });
 
-  it('elige la sugerencia como destino y cierra el desplegable', () => {
+  it('elige la sugerencia como destino y vuelve a plegarse', async () => {
+    await abrir();
     escribir('fragueiro');
 
     const opciones = elementos().querySelectorAll<HTMLButtonElement>('[role="option"] button');
@@ -64,48 +84,89 @@ describe('SearchBarComponent', () => {
     expect(busqueda.destino()).not.toBeNull();
     expect(busqueda.hayDestino()).toBe(true);
     expect(busqueda.consulta()).toBe('');
-    expect(elementos().querySelectorAll('[role="option"]').length).toBe(0);
+    expect(input()).toBeNull();
   });
 
-  it('limpia la búsqueda con el botón de la cruz', () => {
+  it('se repliega al perder el foco', async () => {
+    await abrir();
     escribir('fragueiro');
 
-    const botones = elementos().querySelectorAll<HTMLButtonElement>('button');
-    const limpiar = [...botones].find((boton) =>
-      boton.getAttribute('aria-label')?.includes('Limpiar'),
-    );
+    input()!.dispatchEvent(new FocusEvent('blur'));
+    fixture.detectChanges();
 
-    limpiar!.click();
+    expect(input()).toBeNull();
+    expect(busqueda.consulta()).toBe('');
+  });
+
+  it('se repliega con la tecla Escape', async () => {
+    await abrir();
+    escribir('fragueiro');
+
+    input()!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(input()).toBeNull();
+  });
+
+  it('se repliega con el botón de cerrar', async () => {
+    await abrir();
+
+    boton('Cerrar el buscador')!.click();
+    fixture.detectChanges();
+
+    expect(input()).toBeNull();
+  });
+
+  it('limpia la búsqueda con el botón de la cruz', async () => {
+    await abrir();
+    escribir('fragueiro');
+
+    boton('Limpiar la búsqueda')!.click();
     fixture.detectChanges();
 
     expect(busqueda.consulta()).toBe('');
     expect(busqueda.sugerenciasLocales()).toEqual([]);
+    expect(input()).not.toBeNull();
   });
 
-  it('navega con el teclado y elige la sugerencia resaltada', () => {
+  it('la X del buscador limpia el texto sin quitar la ubicación del mapa', async () => {
+    await abrir();
     escribir('fragueiro');
 
-    input().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    const opciones = elementos().querySelectorAll<HTMLButtonElement>('[role="option"] button');
+    opciones[0].click();
+    fixture.detectChanges();
+
+    expect(busqueda.hayDestino()).toBe(true);
+
+    await abrir();
+    escribir('fragueiro');
+
+    boton('Limpiar la búsqueda')!.click();
+    fixture.detectChanges();
+
+    expect(busqueda.consulta()).toBe('');
+    expect(busqueda.hayDestino()).toBe(true);
+    expect(busqueda.destino()).not.toBeNull();
+  });
+
+  it('navega con el teclado y elige la sugerencia resaltada', async () => {
+    await abrir();
+    escribir('fragueiro');
+
+    input()!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     fixture.detectChanges();
 
     expect(elementos().querySelector('[aria-selected="true"]')).not.toBeNull();
 
-    input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    input()!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     fixture.detectChanges();
 
     expect(busqueda.destino()).not.toBeNull();
+    expect(input()).toBeNull();
   });
 
-  it('cierra el desplegable con la tecla Escape', () => {
-    escribir('fragueiro');
-
-    input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    fixture.detectChanges();
-
-    expect(elementos().querySelectorAll('[role="option"]').length).toBe(0);
-  });
-
-  it('usa la posición del pasajero como destino', async () => {
+  it('usa la posición del pasajero como destino desde el ícono plegado', async () => {
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
@@ -126,15 +187,12 @@ describe('SearchBarComponent', () => {
       },
     });
 
-    const boton = elementos().querySelector<HTMLButtonElement>(
-      'button[aria-label="Usar mi ubicación"]',
-    );
-
-    boton!.click();
+    boton('Usar mi ubicación')!.click();
     await fixture.whenStable();
     fixture.detectChanges();
 
     expect(busqueda.destino()?.etiqueta).toBe('Mi ubicación');
     expect(busqueda.destino()?.latitud).toBeCloseTo(-31.4201, 4);
+    expect(input()).toBeNull();
   });
 });

@@ -140,6 +140,24 @@ describe('BusquedaService', () => {
     expect(busqueda.consulta()).toBe('');
     expect(busqueda.sugerenciasLocales()).toEqual([]);
     expect(busqueda.hayDestino()).toBe(false);
+    expect(busqueda.panelAbierto()).toBe(false);
+  });
+
+  it('abre el panel al elegir un destino', () => {
+    destinoEnParadaDeLinea30();
+
+    expect(busqueda.panelAbierto()).toBe(true);
+  });
+
+  it('cierra el panel sin borrar el destino, para que la cruz siga en el mapa', () => {
+    destinoEnParadaDeLinea30();
+
+    busqueda.cerrarPanel();
+
+    expect(busqueda.panelAbierto()).toBe(false);
+    expect(busqueda.destino()).not.toBeNull();
+    expect(busqueda.hayDestino()).toBe(true);
+    expect(busqueda.analisis()?.lineas.length).toBe(21);
   });
 
   it('usa la posición del pasajero como destino', () => {
@@ -172,5 +190,6 @@ describe('BusquedaService', () => {
     expect(destino?.etiqueta).toBe('Mi ubicación');
     expect(destino?.latitud).toBeCloseTo(-31.4201, 4);
     expect(busqueda.analisis()?.lineas.length).toBe(21);
+    expect(busqueda.panelAbierto()).toBe(true);
   });
 });

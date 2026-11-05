@@ -71,6 +71,13 @@ export class BusquedaService {
   readonly cargandoRemoto = signal(false);
   readonly destino = signal<Destino | null>(null);
 
+  /**
+   * El panel de resultados está desplegado.
+   * Es independiente del destino: al cerrar el panel la cruz del destino
+   * sigue en el mapa, que es lo que el usuario necesita para ubicarse.
+   */
+  readonly panelAbierto = signal(false);
+
   private temporizador: ReturnType<typeof setTimeout> | null = null;
   private controlador: AbortController | null = null;
   private ultimoEnvio = 0;
@@ -101,7 +108,7 @@ export class BusquedaService {
     return resultado;
   });
 
-  /** Hay un destino analizado: el mapa muestra el pin y las paradas de subida. */
+  /** Hay un destino analizado: el mapa muestra la cruz y las paradas de subida. */
   readonly hayDestino = computed(() => this.destino() !== null);
 
   /** Análisis completo del destino elegido. */
@@ -188,6 +195,7 @@ export class BusquedaService {
       linea: sugerencia.linea,
     });
 
+    this.panelAbierto.set(true);
     this.limpiarConsulta();
   }
 
@@ -204,13 +212,23 @@ export class BusquedaService {
       origen: 'lugar',
     });
 
+    this.panelAbierto.set(true);
     this.limpiarConsulta();
   }
 
-  /** Limpia la búsqueda y el destino. */
+  /**
+   * Cierra el panel de resultados sin borrar el destino: la cruz sigue
+   * marcada en el mapa para que el usuario sepa dónde quedó la ubicación.
+   */
+  cerrarPanel(): void {
+    this.panelAbierto.set(false);
+  }
+
+  /** Limpia la búsqueda, el destino y el panel. */
   limpiar(): void {
     this.limpiarConsulta();
     this.destino.set(null);
+    this.panelAbierto.set(false);
   }
 
   /** Vacía el texto escrito y las sugerencias, sin tocar el destino. */

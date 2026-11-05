@@ -88,7 +88,7 @@ describe('SearchResultsComponent', () => {
     expect(estado.sentidoActivo()).toBe(item.sentido);
   });
 
-  it('cierra los resultados al tocar la cruz', async () => {
+  it('cierra los resultados al tocar la cruz y deja la ubicación en el mapa', async () => {
     await esperarCarga();
     elegirDestino();
 
@@ -99,7 +99,26 @@ describe('SearchResultsComponent', () => {
     cerrar!.click();
     fixture.detectChanges();
 
+    // El panel se cierra, pero el destino sigue marcado en el mapa.
+    expect(elementos().querySelector('section')).toBeNull();
+    expect(busqueda.panelAbierto()).toBe(false);
+    expect(busqueda.destino()).not.toBeNull();
+    expect(busqueda.hayDestino()).toBe(true);
+  });
+
+  it('quita la ubicación del mapa con el botón del panel', async () => {
+    await esperarCarga();
+    elegirDestino();
+
+    const quitar = elementos().querySelector<HTMLButtonElement>(
+      'button[aria-label="Quitar la ubicación del mapa"]',
+    );
+
+    quitar!.click();
+    fixture.detectChanges();
+
     expect(busqueda.destino()).toBeNull();
+    expect(busqueda.hayDestino()).toBe(false);
     expect(elementos().querySelector('section')).toBeNull();
   });
 });

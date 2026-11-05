@@ -196,6 +196,20 @@ describe('MapService', () => {
     expect(peticiones).toEqual([[RECORRIDO.id, RECORRIDO.paradas[0].id]]);
   });
 
+  it('dibuja la cruz del destino y la borra cuando se quita', async () => {
+    await servicio.inicializar(contenedor, { centro: [-31.4201, -64.1888], zoom: 13 });
+
+    servicio.dibujarDestino([-31.4201, -64.1888]);
+
+    const cruz = contenedor.querySelector('.destino-marker');
+    expect(cruz).not.toBeNull();
+    expect(cruz?.tagName.toLowerCase()).toBe('svg');
+
+    servicio.dibujarDestino(null);
+
+    expect(contenedor.querySelectorAll('.destino-marker').length).toBe(0);
+  });
+
   it('destruye el mapa liberando la instancia', async () => {
     await servicio.inicializar(contenedor, { centro: [-31.4201, -64.1888], zoom: 13 });
 

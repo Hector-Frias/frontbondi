@@ -65,8 +65,19 @@ export class MapViewComponent {
     effect(() => {
       const listo = this.mapService.mapaListo();
       const parada = this.estado.paradaEnfocada();
+      const destino = this.busqueda.destino();
 
       if (!listo || !parada) return;
+
+      // Con un destino elegido se encuadran los dos puntos: así se ve dónde
+      // está la ubicación buscada y al mismo tiempo dónde hay que subirse.
+      if (destino) {
+        this.mapService.encuadrar([
+          [destino.latitud, destino.longitud],
+          [parada.latitud, parada.longitud],
+        ]);
+        return;
+      }
 
       this.mapService.enfocarParada(parada);
     });

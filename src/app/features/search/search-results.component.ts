@@ -17,7 +17,16 @@ export class SearchResultsComponent {
   /** Muestra el ranking completo o solo las líneas más útiles. */
   protected readonly mostrarTodas = signal(false);
 
-  protected readonly analisis = computed(() => this.busqueda.analisis());
+  /**
+   * Resultado a mostrar: el panel tiene que estar abierto y el destino
+   * analizado. Al cerrar el panel el destino se conserva (la cruz sigue en
+   * el mapa), así que el panel se abre y se cierra por separado.
+   */
+  protected readonly resultado = computed(() => {
+    if (!this.busqueda.panelAbierto()) return null;
+
+    return this.busqueda.analisis();
+  });
 
   protected readonly lineas = computed(() =>
     this.mostrarTodas() ? this.busqueda.lineasUtiles() : this.busqueda.lineasVisibles(),
@@ -80,7 +89,13 @@ export class SearchResultsComponent {
     return 'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-100';
   }
 
+  /** Cierra el panel: el destino sigue marcado en el mapa. */
   protected cerrar(): void {
+    this.busqueda.cerrarPanel();
+  }
+
+  /** Quita la ubicación del mapa y cierra el panel. */
+  protected quitarDestino(): void {
     this.busqueda.limpiar();
   }
 

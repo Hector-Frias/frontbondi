@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { SugerenciaUbicacion } from '../../core/models';
 import { BusquedaService } from '../../core/services/busqueda.service';
 import { GeolocationService } from '../../core/services/geolocation.service';
@@ -13,6 +24,9 @@ export class SearchBarComponent {
   protected readonly busqueda = inject(BusquedaService);
   protected readonly geolocation = inject(GeolocationService);
 
+  /** El input está desplegado: plegado solo se ven los íconos. */
+  protected readonly abierto = signal(false);
+
   /** Índice de la sugerencia resaltada con el teclado. */
   protected readonly indiceActivo = signal(-1);
 
@@ -22,13 +36,24 @@ export class SearchBarComponent {
   /** Se pidió la ubicación y todavía no llegó: al llegar se usa como destino. */
   private readonly pendienteDeUbicacion = signal(false);
 
+  private readonly buscador = viewChild<ElementRef<HTMLInputElement>>('buscador');
+  private readonly contenedor = viewChild<ElementRef<HTMLElement>>('contenedor');
+  private readonly injector = inject(Injector);
+
   protected readonly sugerencias = computed(() => this.busqueda.sugerencias());
 
   protected readonly desplegableAbierto = computed(
-    () => this.enfocado() && this.sugerencias().length > 0 && this.busqueda.consulta().length > 0,
+    () =>
+      this.abierto() &&
+      this.enfocado() &&
+      this.sugerencias().length > 0 &&
+      this.busqueda.consulta().length > 0,
   );
 
   protected readonly errorUbicacion = computed(() => this.geolocation.error());
+
+  /** El navegador está pidiendo la posición. */
+  protected readonly localizando = computed(() => this.geolocation.estado() === 'solicitando');
 
   constructor() {
     effect(() => {
@@ -38,7 +63,36 @@ export class SearchBarComponent {
 
       this.pendienteDeUbicacion.set(false);
       this.busqueda.usarMiUbicacion();
+      this.cerrar();
     });
+  }
+
+  /** Despliega el input y le da el foco. */
+  protected abrir(): void {
+    this.abierto.set(true);
+
+    // El input recién existe después del render: el foco se aplica en ese momento.
+    afterNextRender(() => this.buscador()?.nativeElement.focus(), { injector: this.injector });
+  }
+
+  /** Repliega el buscador al ícono y descarta lo que se había escrito. */
+  protected cerrar(): void {
+    this.abierto.set(false);
+    this.enfocado.set(false);
+    this.indiceActivo.set(-1);
+    this.busqueda.consultar('');
+  }
+
+  /**
+   * Repliega el buscador al perder el foco, salvo que el foco se vaya a otro
+   * control de la barra (por ejemplo, al botón de ubicación).
+   */
+  protected onBlur(event: FocusEvent): void {
+    const siguiente = event.relatedTarget as HTMLElement | null;
+
+    if (siguiente && this.contenedor()?.nativeElement.contains(siguiente)) return;
+
+    this.cerrar();
   }
 
   protected onInput(event: Event): void {
@@ -50,6 +104,12 @@ export class SearchBarComponent {
 
   protected onKeydown(event: KeyboardEvent): void {
     const total = this.sugerencias().length;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cerrar();
+      return;
+    }
 
     if (total === 0) return;
 
@@ -72,9 +132,6 @@ export class SearchBarComponent {
         }
         break;
       }
-      case 'Escape':
-        this.enfocado.set(false);
-        break;
       default:
         break;
     }
@@ -87,12 +144,16 @@ export class SearchBarComponent {
 
   protected elegir(sugerencia: SugerenciaUbicacion): void {
     this.busqueda.seleccionar(sugerencia);
-    this.indiceActivo.set(-1);
-    this.enfocado.set(false);
+    this.cerrar();
   }
 
+  /**
+   * Descarta lo escrito.
+   * No toca el destino: la cruz tiene que seguir en el mapa hasta que se
+   * elija otra ubicación o se la quite explícitamente.
+   */
   protected limpiar(): void {
-    this.busqueda.limpiar();
+    this.busqueda.consultar('');
     this.indiceActivo.set(-1);
   }
 
@@ -100,6 +161,7 @@ export class SearchBarComponent {
   protected usarMiUbicacion(): void {
     if (this.geolocation.posicion()) {
       this.busqueda.usarMiUbicacion();
+      this.cerrar();
       return;
     }
 
